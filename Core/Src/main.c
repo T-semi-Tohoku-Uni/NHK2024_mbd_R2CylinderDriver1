@@ -49,6 +49,8 @@ UART_HandleTypeDef huart2;
 GPIO_TypeDef *GPIOs[8] = {CYL1A_GPIO_Port, CYL1B_GPIO_Port, CYL2A_GPIO_Port, CYL2B_GPIO_Port, CYL3A_GPIO_Port, CYL3B_GPIO_Port, CYL4A_GPIO_Port, CYL4B_GPIO_Port};
 uint16_t GPIOPins[8] = {CYL1A_Pin, CYL1B_Pin, CYL2A_Pin, CYL2B_Pin, CYL3A_Pin, CYL3B_Pin, CYL4A_Pin, CYL4B_Pin};
 
+FDCAN_RxHeaderTypeDef RxHeader;
+uint8_t RxData[64] = {};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,6 +64,37 @@ static void MX_FDCAN1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void USR_ArmUp(void){
+	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(CYL2B_GPIO_Port, CYL2B_Pin, GPIO_PIN_RESET);
+}
+
+void USR_ArmDown(void){
+	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL2B_GPIO_Port, CYL2B_Pin, GPIO_PIN_SET);
+}
+
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs){
+	if(hfdcan->Instance == FDCAN1){
+		if(HAL_OK != HAL_FDCAN_GetRxMessage(&hfdcan1, RxFifo0ITs, &RxHeader, RxData)){
+			Error_Handler();
+		}
+
+		if(RxHeader.Identifier == CANID_ARM){
+			if(RxData[0] == 0){
+				USR_ArmUp();
+			}
+			if(RxData[0] == 1){
+				USR_ArmDown();
+			}
+		}
+
+	}
+}
 
 /* USER CODE END 0 */
 
