@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "R2CANIDList.h"
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -96,6 +97,12 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 	}
 }
 
+int _write(int file, char *ptr, int len)
+{
+    HAL_UART_Transmit(&hlpuart1,(uint8_t *)ptr,len,10);
+    return len;
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -105,7 +112,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	setbuf(stdout, NULL);
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
