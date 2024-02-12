@@ -45,6 +45,8 @@ FDCAN_HandleTypeDef hfdcan1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+GPIO_TypeDef *GPIOs[8] = {CYL1A_GPIO_Port, CYL1B_GPIO_Port, CYL2A_GPIO_Port, CYL2B_GPIO_Port, CYL3A_GPIO_Port, CYL3B_GPIO_Port, CYL4A_GPIO_Port, CYL4B_GPIO_Port};
+uint16_t GPIOPins[8] = {CYL1A_Pin, CYL1B_Pin, CYL2A_Pin, CYL2B_Pin, CYL3A_Pin, CYL3B_Pin, CYL4A_Pin, CYL4B_Pin};
 
 /* USER CODE END PV */
 
@@ -93,6 +95,9 @@ int main(void)
   MX_USART2_UART_Init();
   MX_FDCAN1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_GPIO_WritePin(GPIOs[0], GPIOPins[0], GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOs[2], GPIOPins[2], GPIO_PIN_SET);
+
 
   /* USER CODE END 2 */
 
