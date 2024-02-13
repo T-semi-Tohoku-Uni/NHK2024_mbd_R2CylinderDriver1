@@ -87,9 +87,11 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 
 		if(RxHeader.Identifier == CANID_ARM){
 			if(RxData[0] == 0){
+				printf("Arm Up\r\n");
 				USR_ArmUp();
 			}
 			if(RxData[0] == 1){
+				printf("Arm Down\r\n");
 				USR_ArmDown();
 			}
 		}
