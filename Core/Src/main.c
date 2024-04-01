@@ -21,6 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "R2CANIDList.h"
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -45,7 +47,11 @@ FDCAN_HandleTypeDef hfdcan1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+GPIO_TypeDef *GPIOs[8] = {CYL1A_GPIO_Port, CYL1B_GPIO_Port, CYL2A_GPIO_Port, CYL2B_GPIO_Port, CYL3A_GPIO_Port, CYL3B_GPIO_Port, CYL4A_GPIO_Port, CYL4B_GPIO_Port};
+uint16_t GPIOPins[8] = {CYL1A_Pin, CYL1B_Pin, CYL2A_Pin, CYL2B_Pin, CYL3A_Pin, CYL3B_Pin, CYL4A_Pin, CYL4B_Pin};
 
+FDCAN_RxHeaderTypeDef RxHeader;
+uint8_t RxData[64] = {};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,6 +65,46 @@ static void MX_FDCAN1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void USR_ArmDown(void){
+	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(CYL2B_GPIO_Port, CYL2B_Pin, GPIO_PIN_RESET);
+}
+
+void USR_ArmUp(void){
+	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL2B_GPIO_Port, CYL2B_Pin, GPIO_PIN_SET);
+}
+
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs){
+	if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET) {
+		/* Retrieve Rx messages from RX FIFO0 */
+		if (HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK) {
+			Error_Handler();
+		}
+
+		if(RxHeader.Identifier == CANID_ARM){
+			if(RxData[0] == 0){
+				printf("Arm Up\r\n");
+				USR_ArmUp();
+			}
+			else if(RxData[0] == 1){
+				printf("Arm Down\r\n");
+				USR_ArmDown();
+			}
+		}
+
+	}
+}
+
+int _write(int file, char *ptr, int len)
+{
+    HAL_UART_Transmit(&huart2,(uint8_t *)ptr,len,10);
+    return len;
+}
 
 /* USER CODE END 0 */
 
@@ -69,7 +115,7 @@ static void MX_FDCAN1_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	setbuf(stdout, NULL);
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -78,6 +124,16 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  FDCAN_FilterTypeDef sFilterConfig;
+	sFilterConfig.IdType = FDCAN_STANDARD_ID;
+	sFilterConfig.FilterIndex = 0;
+	sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+	sFilterConfig.FilterID1 = CANID_ARM;
+	sFilterConfig.FilterID2 = 0x7FF;
+
+
+
 
   /* USER CODE END Init */
 
@@ -93,6 +149,20 @@ int main(void)
   MX_USART2_UART_Init();
   MX_FDCAN1_Init();
   /* USER CODE BEGIN 2 */
+  if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
+		Error_Handler();
+	}
+	if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK) {
+		Error_Handler();
+	}
+
+	if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
+		Error_Handler();
+	}
+
+	if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
+		Error_Handler();
+	}
 
   /* USER CODE END 2 */
 
@@ -191,6 +261,8 @@ static void MX_FDCAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN FDCAN1_Init 2 */
+
+
 
   /* USER CODE END FDCAN1_Init 2 */
 
