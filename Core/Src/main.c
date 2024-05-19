@@ -55,7 +55,9 @@ FDCAN_RxHeaderTypeDef RxHeader;
 uint8_t RxData[64] = {};
 
 uint8_t flag = 0;
+uint8_t flag2 = 0;
 uint8_t status = 0;
+uint8_t status2 = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,6 +72,13 @@ void USR_ArmDown(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void USR_CamUp(void){
+	HAL_GPIO_WritePin(CYL3A_GPIO_Port, CYL3A_Pin, GPIO_PIN_SET);
+}
+
+void USR_CamDown(void){
+	HAL_GPIO_WritePin(CYL3A_GPIO_Port, CYL3A_Pin, GPIO_PIN_RESET);
+}
 void USR_ArmDown(void){
 	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_RESET);
@@ -90,9 +99,9 @@ void USR_ArmDown(void){
 
 	HAL_Delay(80);
 	//static
-	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(CYL2B_GPIO_Port, CYL2B_Pin, GPIO_PIN_RESET);
 
 }
@@ -141,7 +150,15 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 				flag = DOWN;
 			}
 		}
-
+		if(RxHeader.Identifier == CANID_CAM_ARM){
+			if(RxData[0] == 1){
+				flag = DOWN;
+				flag2 = UP;
+			}
+			if(RxData[0] == 0){
+				flag2 = DOWN;
+			}
+		}
 	}
 }
 
@@ -175,7 +192,7 @@ int main(void)
 	sFilterConfig.FilterType = FDCAN_FILTER_MASK;
 	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
 	sFilterConfig.FilterID1 = CANID_ARM;
-	sFilterConfig.FilterID2 = 0x7FF;
+	sFilterConfig.FilterID2 = 0x000;
 
 
 
@@ -209,6 +226,12 @@ int main(void)
 		Error_Handler();
 	}
 
+	USR_ArmUp();
+  printf("Arm Up\r\n");
+  flag = 0;
+  flag2 = 0;
+  status = UP;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -221,6 +244,7 @@ int main(void)
 			  printf("Arm Up\r\n");
 			  flag = 0;
 			  status = UP;
+
 		  }
 		  else if(flag == DOWN){
 			  USR_ArmDown();
@@ -229,6 +253,20 @@ int main(void)
 			  status = DOWN;
 		  }
 	  }
+	  if(status2 != flag2){
+		  if(flag2 == UP){
+			  USR_CamUp();
+			  status2 = UP;
+			  flag2 = 0;
+		  }
+
+		  else if(flag2 == DOWN){
+			  USR_CamDown();
+			  status2 = DOWN;
+			  flag2=0;
+		  }
+	  }
+
 	  HAL_Delay(10);
     /* USER CODE END WHILE */
 
