@@ -38,6 +38,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+#define INIT 3
 #define UP 1
 #define DOWN 2
 /* USER CODE END PM */
@@ -68,6 +69,7 @@ static void MX_FDCAN1_Init(void);
 /* USER CODE BEGIN PFP */
 void USR_ArmUp(void);
 void USR_ArmDown(void);
+void USR_ArmInit(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -79,6 +81,13 @@ void USR_CamUp(void){
 void USR_CamDown(void){
 	HAL_GPIO_WritePin(CYL3A_GPIO_Port, CYL3A_Pin, GPIO_PIN_RESET);
 }
+
+void USR_ArmInit(void){
+	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(CYL2B_GPIO_Port, CYL2B_Pin, GPIO_PIN_SET);
+}
 void USR_ArmDown(void){
 	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_RESET);
@@ -89,20 +98,20 @@ void USR_ArmDown(void){
 	HAL_Delay(100);
 	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_RESET);
-
-	//brake
-	HAL_Delay(200);
-	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(CYL2B_GPIO_Port, CYL2B_Pin, GPIO_PIN_SET);
-
-	HAL_Delay(80);
-	//static
-	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(CYL2B_GPIO_Port, CYL2B_Pin, GPIO_PIN_RESET);
+//
+//	//brake
+//	HAL_Delay(200);
+//	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(CYL2B_GPIO_Port, CYL2B_Pin, GPIO_PIN_SET);
+//
+//	HAL_Delay(80);
+//	//static
+//	HAL_GPIO_WritePin(CYL1A_GPIO_Port, CYL1A_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(CYL1B_GPIO_Port, CYL1B_Pin, GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(CYL2A_GPIO_Port, CYL2A_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(CYL2B_GPIO_Port, CYL2B_Pin, GPIO_PIN_RESET);
 
 }
 
@@ -148,6 +157,9 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 			}
 			else if(RxData[0] == 1){
 				flag = DOWN;
+			}
+			else if(RxData[0] == 2){
+				flag = INIT;
 			}
 		}
 		if(RxHeader.Identifier == CANID_CAM_ARM){
@@ -226,11 +238,10 @@ int main(void)
 		Error_Handler();
 	}
 
-	USR_ArmUp();
-  printf("Arm Up\r\n");
+	USR_ArmInit();
   flag = 0;
   flag2 = 0;
-  status = UP;
+  status = INIT;
 
   /* USER CODE END 2 */
 
@@ -251,6 +262,12 @@ int main(void)
 			  printf("Arm Down\r\n");
 			  flag = 0;
 			  status = DOWN;
+		  }
+		  else if (flag == INIT){
+			  USR_ArmInit();
+			  printf("Arm Init\r\n");
+			  flag = 0;
+			  status = INIT;
 		  }
 	  }
 	  if(status2 != flag2){
